@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: auth-api
+
+  # Connection settings come from environment variables (see docker-compose.yml and .env).
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  jpa:
+    hibernate:
+      # Flyway owns the schema. Hibernate only checks at startup that the entities match the tables.
+      ddl-auto: validate
+    # Don't hold a DB connection for the whole HTTP request (Spring Boot warns about this default).
+    open-in-view: false
+
+jwt:
+  # HS256 signing key; must be at least 32 bytes long.
+  secret: ${JWT_SECRET}
+  expiration-minutes: 60
+
+data-api:
+  # "data-api" is the service name in docker-compose.yml; Docker's internal DNS resolves it to that container.
+  url: ${DATA_API_URL:http://data-api:8081}
+  # Shared secret sent in the X-Internal-Token header; must equal data-api's INTERNAL_TOKEN.
+  internal-token: ${INTERNAL_TOKEN}
