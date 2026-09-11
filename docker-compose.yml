@@ -1,0 +1,60 @@
+# Three containers on one private network.
+# ${...} values are read from the .env file next to this file (create it with: cp .env.example .env).
+# The ":?" form makes compose stop with that message if a variable is missing.
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is not set, copy .env.example to .env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is not set, copy .env.example to .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set, copy .env.example to .env}
+    volumes:
+      # Named volume: data survives container restarts, rebuilds and "docker compose down".
+      - pgdata:/var/lib/postgresql/data
+    # No "ports" on purpose: only auth-api (inside the network) needs the database.
+    healthcheck:
+      # $$ escapes compose substitution, so the variables are expanded inside the container.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+
+  data-api:
+    build: ./data-api
+    environment:
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:?INTERNAL_TOKEN is not set, copy .env.example to .env}
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
+
+  auth-api:
+    build: ./auth-api
+    environment:
+      POSTGRES_URL: ${POSTGRES_URL:?POSTGRES_URL is not set, copy .env.example to .env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is not set, copy .env.example to .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set, copy .env.example to .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is not set, copy .env.example to .env}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:?INTERNAL_TOKEN is not set, copy .env.example to .env}
+      # A service name, not an IP: Docker's built-in DNS resolves "data-api" to that container.
+      DATA_API_URL: http://data-api:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        # Wait until Postgres accepts connections, not merely until its container has started.
+        condition: service_healthy
+      data-api:
+        condition: service_started
+    networks:
+      - backend
+
+networks:
+  backend:
+
+volumes:
+  pgdata:
