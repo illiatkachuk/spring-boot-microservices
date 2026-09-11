@@ -1,0 +1,11 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: data-api
+
+# Shared secret that callers must send in the X-Internal-Token header.
+# Read from the INTERNAL_TOKEN environment variable; the app refuses to start if it is missing.
+internal:
+  token: ${INTERNAL_TOKEN}
