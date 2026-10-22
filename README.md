@@ -1,4 +1,4 @@
-# WinWin.travel — Backend Test Task
+# Spring Boot microservices with PostgreSQL and Docker
 
 Two Spring Boot microservices and PostgreSQL, started together with Docker Compose.
 
